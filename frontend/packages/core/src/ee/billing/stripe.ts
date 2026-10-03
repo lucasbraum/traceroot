@@ -19,9 +19,12 @@ type PeriodItem = { current_period_start: number; current_period_end: number };
  * values for a single-item subscription. Undefined when there are no items, which Stripe never
  * returns: the caller decides what that means where it stands.
  */
-export function subscriptionPeriod(s: { items: { data: PeriodItem[] } }): { start: number; end: number } | undefined {
+export function subscriptionPeriod(s: {
+  items: { data: PeriodItem[] };
+}): { start: number; end: number } | undefined {
   const latest = s.items.data.reduce<PeriodItem | undefined>(
-    (best, item) => (best === undefined || item.current_period_end > best.current_period_end ? item : best),
+    (best, item) =>
+      best === undefined || item.current_period_end > best.current_period_end ? item : best,
     undefined,
   );
   return latest && { start: latest.current_period_start, end: latest.current_period_end };

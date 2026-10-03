@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { prisma, getStripeOrThrow, mapPriceIdToPlan, PlanType, subscriptionPeriod } from "@traceroot/core";
+import {
+  prisma,
+  getStripeOrThrow,
+  mapPriceIdToPlan,
+  PlanType,
+  subscriptionPeriod,
+} from "@traceroot/core";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
