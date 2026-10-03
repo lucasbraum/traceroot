@@ -1,5 +1,5 @@
 // Stripe client
-export { stripe, getStripeOrThrow } from "./stripe.ts";
+export { stripe, getStripeOrThrow, subscriptionPeriod } from "./stripe.ts";
 
 // Plans and entitlements (single source of truth)
 export {

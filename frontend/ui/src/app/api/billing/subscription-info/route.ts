@@ -1,7 +1,7 @@
 import { withImpersonationPolicy } from "@/lib/support/route-guard";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSession } from "@/lib/request-session";
-import { prisma, getStripeOrThrow, mapPriceIdToPlan } from "@traceroot/core";
+import { prisma, getStripeOrThrow, mapPriceIdToPlan, subscriptionPeriod } from "@traceroot/core";
 
 export interface SubscriptionInfo {
   cancellation: { cancelAt: Date } | null;
@@ -53,20 +53,27 @@ async function handleGET(req: NextRequest) {
 
     const nowSec = Math.floor(Date.now() / 1000);
 
+    // identical to the old subscription-level values for a single-item subscription;
+    // the latest-ending item for a multi-item one.
+    const period = subscriptionPeriod(subscription);
+    if (!period) {
+      throw new Error("subscription " + subscription.id + " has no items");
+    }
+
     // Check for cancellation
     let cancellation: SubscriptionInfo["cancellation"] = null;
     if (typeof subscription.cancel_at === "number" && subscription.cancel_at > nowSec) {
       cancellation = { cancelAt: new Date(subscription.cancel_at * 1000) };
     } else if (subscription.cancel_at_period_end === true) {
       cancellation = {
-        cancelAt: new Date(subscription.current_period_end * 1000),
+        cancelAt: new Date(period.end * 1000),
       };
     }
 
     // Billing period
     const billingPeriod: SubscriptionInfo["billingPeriod"] = {
-      start: new Date(subscription.current_period_start * 1000),
-      end: new Date(subscription.current_period_end * 1000),
+      start: new Date(period.start * 1000),
+      end: new Date(period.end * 1000),
     };
 
     // Check for scheduled plan change (downgrade)

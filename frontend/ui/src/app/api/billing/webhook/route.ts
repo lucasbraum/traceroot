@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { prisma, getStripeOrThrow, mapPriceIdToPlan, PlanType } from "@traceroot/core";
+import {
+  prisma,
+  getStripeOrThrow,
+  mapPriceIdToPlan,
+  PlanType,
+  subscriptionPeriod,
+} from "@traceroot/core";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -40,12 +46,18 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // identical to the old subscription-level values for a single-item subscription; the latest-ending item for a multi-item one
         // If billing period dates are missing, fetch full subscription from Stripe
-        if (!subscription.current_period_start || !subscription.current_period_end) {
+        let period = subscriptionPeriod(subscription);
+        if (!period) {
           console.log(
             `Billing period missing in webhook, fetching subscription ${subscription.id}`,
           );
           subscription = await stripe.subscriptions.retrieve(subscription.id);
+          period = subscriptionPeriod(subscription);
+          if (!period) {
+            throw new Error("subscription " + subscription.id + " has no items");
+          }
         }
 
         const priceId = subscription.items.data[0]?.price.id;
@@ -62,8 +74,8 @@ export async function POST(req: NextRequest) {
             billingStatus: subscription.status, // active, past_due, canceled, etc.
             billingPlan: plan,
             // Store current billing period dates (updated each month when subscription renews)
-            billingPeriodStart: new Date(subscription.current_period_start * 1000),
-            billingPeriodEnd: new Date(subscription.current_period_end * 1000),
+            billingPeriodStart: new Date(period.start * 1000),
+            billingPeriodEnd: new Date(period.end * 1000),
           },
         });
 
@@ -75,7 +87,7 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(
-          `Subscription ${event.type} for workspace ${workspaceId}, plan: ${plan}, status: ${subscription.status}, period: ${subscription.current_period_start} - ${subscription.current_period_end}`,
+          `Subscription ${event.type} for workspace ${workspaceId}, plan: ${plan}, status: ${subscription.status}, period: ${period.start} - ${period.end}`,
         );
         break;
       }

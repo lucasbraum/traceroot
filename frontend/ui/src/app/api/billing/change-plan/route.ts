@@ -1,7 +1,14 @@
 import { withImpersonationPolicy } from "@/lib/support/route-guard";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSession } from "@/lib/request-session";
-import { prisma, getStripeOrThrow, getPlanConfig, isUpgrade, PlanType } from "@traceroot/core";
+import {
+  prisma,
+  getStripeOrThrow,
+  getPlanConfig,
+  isUpgrade,
+  PlanType,
+  subscriptionPeriod,
+} from "@traceroot/core";
 
 async function handlePOST(req: NextRequest) {
   try {
@@ -156,7 +163,7 @@ async function handlePOST(req: NextRequest) {
         // the new plan. Matches Free→Paid behavior. Stripe handles money
         // symmetrically via proration — customer pays full new-plan price
         // minus refund for unused old-plan time.
-        billing_cycle_anchor: "now",
+        billing_cycle_anchor: { type: "now" },
       });
 
       console.log("Stripe subscription updated:", {
@@ -196,6 +203,12 @@ async function handlePOST(req: NextRequest) {
       // wholesale, so anything we don't include here gets dropped at the
       // phase boundary, breaking downstream billing for those meters.
       const meteredPhaseItems = existingMeteredPriceIds.map((priceId) => ({ price: priceId }));
+      // identical to the old subscription-level values for a single-item subscription;
+      // the latest-ending item for a multi-item one.
+      const period = subscriptionPeriod(subscription);
+      if (!period) {
+        throw new Error("subscription " + subscription.id + " has no items");
+      }
       await stripe.subscriptionSchedules.update(schedule.id, {
         phases: [
           {
@@ -204,11 +217,11 @@ async function handlePOST(req: NextRequest) {
               ...meteredPhaseItems,
             ],
             start_date: schedule.phases[0].start_date,
-            end_date: subscription.current_period_end,
+            end_date: period.end,
           },
           {
             items: [{ price: newPlanConfig.billingPriceId, quantity: 1 }, ...meteredPhaseItems],
-            start_date: subscription.current_period_end,
+            start_date: period.end,
           },
         ],
       });
