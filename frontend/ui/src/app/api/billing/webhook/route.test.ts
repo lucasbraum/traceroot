@@ -57,7 +57,15 @@ function subscriptionEvent(
         metadata: workspaceId ? { workspaceId } : {},
         current_period_start: now,
         current_period_end: now + 2_592_000,
-        items: { data: [{ price: { id: "price_test123" }, current_period_start: now, current_period_end: now + 2_592_000 }] },
+        items: {
+          data: [
+            {
+              price: { id: "price_test123" },
+              current_period_start: now,
+              current_period_end: now + 2_592_000,
+            },
+          ],
+        },
       },
     },
   };
