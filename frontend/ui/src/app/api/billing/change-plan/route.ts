@@ -156,7 +156,7 @@ async function handlePOST(req: NextRequest) {
         // the new plan. Matches Free→Paid behavior. Stripe handles money
         // symmetrically via proration — customer pays full new-plan price
         // minus refund for unused old-plan time.
-        billing_cycle_anchor: "now",
+        billing_cycle_anchor: { type: "now" },
       });
 
       console.log("Stripe subscription updated:", {
