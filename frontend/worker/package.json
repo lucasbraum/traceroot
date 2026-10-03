@@ -32,7 +32,7 @@
     "ioredis": "^5.10.1",
     "node-cron": "^4.6.0",
     "nodemailer": "^10.0.13",
-    "stripe": "14.25.0"
+    "stripe": "23.0.0"
   },
   "devDependencies": {
     "@opentelemetry/sdk-trace-node": "^2.10.0",
