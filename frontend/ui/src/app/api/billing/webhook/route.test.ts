@@ -15,7 +15,8 @@ const workspaceUpdateManyMock = vi.fn();
 const constructEventMock = vi.fn();
 const subscriptionRetrieveMock = vi.fn();
 
-vi.mock("@traceroot/core", () => ({
+vi.mock("@traceroot/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@traceroot/core")>()),
   prisma: {
     workspace: {
       update: (...args: unknown[]) => workspaceUpdateMock(...args),
@@ -56,7 +57,7 @@ function subscriptionEvent(
         metadata: workspaceId ? { workspaceId } : {},
         current_period_start: now,
         current_period_end: now + 2_592_000,
-        items: { data: [{ price: { id: "price_test123" } }] },
+        items: { data: [{ price: { id: "price_test123" }, current_period_start: now, current_period_end: now + 2_592_000 }] },
       },
     },
   };
